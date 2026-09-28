@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillSwap - Community Time Bank</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hero { background: linear-gradient(135deg, #0d6efd, #0dcaf0); color: white; padding: 2.5rem 0; margin-bottom: 2rem; border-radius: 0 0 15px 15px; }
+        .card { border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: none; margin-bottom: 1.5rem; }
+        .badge-credit { background-color: #ffc107; color: #000; font-size: 1.1rem; padding: 0.5em 0.8em; border-radius: 20px; }
+        .nav-tabs .nav-link { color: #495057; font-weight: 600; }
+        .nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
+    </style>
+</head>
+<body>
+
+<div class="hero text-center">
+    <h1 class="fw-bold">🔄 SkillSwap</h1>
+    <p class="lead">Peer-to-Peer Skill Exchange Powered by Time Credits</p>
+</div>
+
+<div class="container">
+    <!-- Active User Context Selector -->
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="card p-3 text-center border-primary">
+                <div class="row align-items-center">
+                    <div class="col-md-7">
+                        <label for="userSelect" class="form-label fw-bold mb-1">Select Active User Context:</label>
+                        <select id="userSelect" class="form-select" onchange="switchUser()">
+                            <option value="">Loading members...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5 mt-2 mt-md-0">
+                        <span class="d-block text-muted small fw-bold">TIME CREDIT BALANCE</span>
+                        <span id="userBalance" class="badge badge-credit mt-1">0.00 Credits</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Section Tabs -->
+    <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="skills-tab" data-bs-toggle="tab" data-bs-target="#skills" type="button">Skill Offers (`skill_offers`)</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="sessions-tab" data-bs-toggle="tab" data-bs-target="#sessions" type="button">Sessions (`session_requests`)</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="ledger-tab" data-bs-toggle="tab" data-bs-target="#ledger" type="button">Credit Audit (`credit_ledger`)</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button">Register (`members`)</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="mainTabContent">
+
+        <!-- 1. SKILLS TAB -->
+        <div class="tab-pane fade show active" id="skills" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Available Skill Offers</h3>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSkillModal">+ Post Skill Offer</button>
+            </div>
+            <div id="skillsList" class="row"></div>
+        </div>
+
+        <!-- 2. SESSIONS TAB -->
+        <div class="tab-pane fade" id="sessions" role="tabpanel">
+            <h3>Session Requests & Lifecycle</h3>
+            <div class="card p-3">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Session ID</th>
+                            <th>Skill Name</th>
+                            <th>Requester</th>
+                            <th>Provider</th>
+                            <th>Hours</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody id="sessionsList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. CREDIT LEDGER TAB -->
+        <div class="tab-pane fade" id="ledger" role="tabpanel">
+            <h3>Credit Ledger Audit Trail</h3>
+            <div class="card p-3">
+                <div class="table-responsive">
+                    <table class="table table-striped align-middle mb-0">
+                        <thead class="table-dark">
+                        <tr>
+                            <th>TX ID</th>
+                            <th>Session ID</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Timestamp</th>
+                        </tr>
+                        </thead>
+                        <tbody id="ledgerList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. MEMBERS REGISTRATION TAB -->
+        <div class="tab-pane fade" id="members" role="tabpanel">
+            <div class="row">
+                <div class="col-md-6 offset-md-3">
+                    <div class="card p-4">
+                        <h4 class="mb-3">Register New Community Member</h4>
+                        <form id="registerForm" onsubmit="registerMember(event)">
+                            <div class="mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" id="regName" class="form-control" placeholder="e.g. Suresh Kumar" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" id="regEmail" class="form-control" placeholder="e.g. suresh@example.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" id="regPassword" class="form-control" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">Register Member</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal: Post Skill -->
+<div class="modal fade" id="addSkillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Publish a Skill Offer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="skillForm" onsubmit="createSkill(event)">
+                    <div class="mb-3">
+                        <label class="form-label">Skill Title</label>
+                        <input type="text" id="skillName" class="form-control" placeholder="e.g. Spring Boot Development" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea id="skillDesc" class="form-control" rows="3" placeholder="Describe what you will teach..." required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Available Hours</label>
+                        <input type="number" id="skillHours" class="form-control" min="0.5" step="0.5" value="5.0" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Publish to Market</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_BASE = 'http://localhost:8080/api';
+    let currentUserId = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadMembers();
+        loadSkills();
+        loadSessions();
+    });
+
+    async function loadMembers() {
+        try {
+            const res = await fetch(`${API_BASE}/members`);
+            const members = await res.json();
+            const select = document.getElementById('userSelect');
+            select.innerHTML = members.map(m => `<option value="${m.id}">${m.name} (${m.email})</option>`).join('');
+            if (members.length > 0) {
+                currentUserId = members[0].id;
+                updateUserBalance();
+                loadLedger();
+            }
+        } catch (e) {
+            console.error("Error loading members", e);
+        }
+    }
+
+    async function switchUser() {
+        currentUserId = document.getElementById('userSelect').value;
+        updateUserBalance();
+        loadSkills();
+        loadSessions();
+        loadLedger();
+    }
+
+    async function updateUserBalance() {
+        if (!currentUserId) return;
+        const res = await fetch(`${API_BASE}/members/${currentUserId}/balance`);
+        const data = await res.json();
+        document.getElementById('userBalance').innerText = `${parseFloat(data.balance).toFixed(2)} Credits`;
+    }
+
+    async function loadSkills() {
+        const res = await fetch(`${API_BASE}/skills`);
+        const skills = await res.json();
+        const container = document.getElementById('skillsList');
+        container.innerHTML = skills.map(s => `
+            <div class="col-md-4">
+                <div class="card p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title fw-bold text-primary mb-1">${s.skillName}</h5>
+                        <span class="badge bg-secondary">${s.availableHours} hrs</span>
+                    </div>
+                    <p class="text-muted small mb-2">Offered by: <strong>${s.memberName}</strong></p>
+                    <p class="card-text text-secondary">${s.description}</p>
+                    <div class="mt-3">
+                        ${s.memberId != currentUserId ?
+            `<button class="btn btn-sm btn-outline-primary w-100" onclick="requestSession(${s.id})">Book Session</button>` :
+            `<button class="btn btn-sm btn-light w-100 disabled">Your Skill Offer</button>`}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function createSkill(e) {
+        e.preventDefault();
+        const payload = {
+            memberId: currentUserId,
+            skillName: document.getElementById('skillName').value,
+            description: document.getElementById('skillDesc').value,
+            availableHours: parseFloat(document.getElementById('skillHours').value)
+        };
+        await fetch(`${API_BASE}/skills`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        bootstrap.Modal.getInstance(document.getElementById('addSkillModal')).hide();
+        document.getElementById('skillForm').reset();
+        loadSkills();
+    }
+
+    async function requestSession(skillId) {
+        const hours = prompt("Enter duration in hours to request:", "2.0");
+        if (!hours) return;
+        const payload = {
+            requesterId: currentUserId,
+            skillOfferId: skillId,
+            requestedHours: parseFloat(hours)
+        };
+        const res = await fetch(`${API_BASE}/session-requests`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            alert("Session requested!");
+            loadSessions();
+        } else {
+            alert("Failed to request session.");
+        }
+    }
+
+    async function loadSessions() {
+        const res = await fetch(`${API_BASE}/session-requests`);
+        const sessions = await res.json();
+        const tbody = document.getElementById('sessionsList');
+        tbody.innerHTML = sessions.map(s => `
+            <tr>
+                <td><strong>#${s.id}</strong></td>
+                <td>${s.skillName}</td>
+                <td>${s.requesterName}</td>
+                <td>${s.providerName}</td>
+                <td>${s.requestedHours} hrs</td>
+                <td>
+                    <span class="badge bg-${s.status === 'COMPLETED' ? 'success' : (s.status === 'REJECTED' ? 'danger' : 'warning')}">
+                        ${s.status}
+                    </span>
+                </td>
+                <td>
+                    ${s.status === 'REQUESTED' && s.providerId == currentUserId ?
+            `<button class="btn btn-sm btn-success" onclick="completeSession(${s.id})">Complete & Transfer Credits</button>` :
+            `-`}
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function completeSession(sessionId) {
+        const payload = {
+            providerId: currentUserId,
+            deliveredHours: 2.0
+        };
+        const res = await fetch(`${API_BASE}/session-requests/${sessionId}/complete`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            alert("Session marked COMPLETED! Credits transferred successfully.");
+            loadSessions();
+            updateUserBalance();
+            loadLedger();
+        } else {
+            alert("Error completing session.");
+        }
+    }
+
+    async function loadLedger() {
+        if (!currentUserId) return;
+        const res = await fetch(`${API_BASE}/credits/member/${currentUserId}`);
+        const transactions = await res.json();
+        const tbody = document.getElementById('ledgerList');
+        tbody.innerHTML = transactions.map(t => `
+            <tr>
+                <td>#${t.id}</td>
+                <td>#${t.sessionRequestId}</td>
+                <td><span class="badge bg-${t.transactionType === 'EARNED' ? 'success' : 'danger'}">${t.transactionType}</span></td>
+                <td class="fw-bold">${t.transactionType === 'EARNED' ? '+' : '-'}${parseFloat(t.amount).toFixed(2)}</td>
+                <td>${t.description}</td>
+                <td class="small text-muted">${new Date(t.createdAt).toLocaleString()}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function registerMember(e) {
+        e.preventDefault();
+        const payload = {
+            name: document.getElementById('regName').value,
+            email: document.getElementById('regEmail').value,
+            password: document.getElementById('regPassword').value
+        };
+        const res = await fetch(`${API_BASE}/members`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            alert("Member successfully registered!");
+            document.getElementById('registerForm').reset();
+            loadMembers();
+        } else {
+            alert("Registration failed. Email may already be registered.");
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
